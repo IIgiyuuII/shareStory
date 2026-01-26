@@ -36,55 +36,7 @@
     tg.ready();
     tg.expand();
 
-    // Генерируем сразу, чтобы не было ошибок
-    const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
-
-    const status = document.getElementById('status');
-    const user = tg.initDataUnsafe?.user || {};
-    const hasPremium = user.is_premium === true;
-
-    // Минимальная отладка (можно удалить позже)
-    status.innerHTML = `Платформа: ${tg.platform}<br>is_premium: ${user.is_premium ?? 'отсутствует'}`;
-
-    if (!tg.initDataUnsafe?.user) {
-      status.innerHTML += '<br><br><strong style="color:red">Нет данных пользователя — открой через t.me/бот/имяаппа</strong>';
-      return;
-    }
-
-    // Пытаемся поделиться, если Premium и метод есть
-    if (hasPremium && typeof tg.shareToStory === 'function') {
-      try {
-        tg.shareToStory('https://picsum.photos/720/1280', {
-          text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано на моём сайте!`
-        });
-
-        document.body.innerHTML = `
-          <h2 style="color:green">Открываем редактор историй...</h2>
-          <p>Если ничего не появилось — обнови Telegram.</p>
-          <button class="blue" onclick="tg.close()">Закрыть мини-апп</button>
-        `;
-      } catch (err) {
-        status.innerHTML += `<br><br>Ошибка: ${err.message || 'неизвестная'}`;
-      }
-    } else {
-      // Нет Premium → сразу скачиваем txt
-      const blob = new Blob([digits], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'random_16_digits.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      document.body.innerHTML = `
-        <h2>Premium не обнаружен 😔</h2>
-        <p>Файл с 16 случайными цифрами скачан на устройство.</p>
-        <p>Истории в Telegram доступны только с подпиской Premium.</p>
-        <button class="gray" onclick="tg.close()">Закрыть</button>
-      `;
-    }
+    document.body.innerHTML = '<h1>Тест — код дошёл сюда!</h1>';
   </script>
 </body>
 </html>
