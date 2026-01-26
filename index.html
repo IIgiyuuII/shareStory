@@ -6,31 +6,70 @@
   <title>Поделиться в историю</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; text-align:center; padding:40px; background:#f0f2f5; }
-    h1 { color:#0088cc; }
+    body { 
+      font-family: system-ui, sans-serif; 
+      text-align: center; 
+      padding: 40px; 
+      background: #f0f2f5; 
+      margin: 0;
+    }
+    h1, h2 { color: #0088cc; }
+    .message { font-size: 1.2em; margin-top: 30px; }
   </style>
 </head>
 <body>
   <h1>Подготовка...</h1>
+  <div class="message" id="status">Проверяем...</div>
 
   <script>
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
 
-    // Генерируем 16 случайных цифр
     const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
+    const statusEl = document.getElementById('status');
 
-    if (Telegram.WebApp.initDataUnsafe.user?.is_premium) {
-      // Есть Premium → открываем редактор истории
-      // Замени ссылку на свою картинку (обязательно HTTPS!)
-      const mediaUrl = "https://picsum.photos/200/300"; // пример случайной картинки
+    const user = Telegram.WebApp.initDataUnsafe.user;
 
-      Telegram.WebApp.shareToStory(mediaUrl, {
-        text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано на моём сайте!`,
-        // widget_link: { url: "https://твой-сайт.ru", name: "Мой крутой сайт" } // опционально
-      });
+    if (!user) {
+      statusEl.innerHTML = "Не удалось получить данные пользователя.<br>Попробуй открыть заново.";
+      setTimeout(() => Telegram.WebApp.close(), 3000);
+      return;
+    }
+
+    if (user.is_premium) {
+      // Проверяем, существует ли метод (на всякий случай)
+      if (typeof Telegram.WebApp.shareToStory === 'function') {
+        const mediaUrl = "https://picsum.photos/720/1280"; // лучше вертикальная картинка
+
+        try {
+          Telegram.WebApp.shareToStory(mediaUrl, {
+            text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано на моём сайте!`
+            // widget_link: { url: window.location.origin, name: "Мой сайт" }
+          });
+
+          // Показываем подсказку
+          document.body.innerHTML = `
+            <h2>Редактор историй открыт!</h2>
+            <p style="font-size:1.3em; margin:30px 20px;">
+              Опубликуй историю или нажми «Назад».<br>
+              Когда закончишь — можешь закрыть это окно (кнопка сверху или свайп).
+            </p>
+            <button onclick="Telegram.WebApp.close()" style="padding:12px 30px; font-size:1.1em; background:#0088cc; color:white; border:none; border-radius:10px; margin-top:20px;">
+              Закрыть сейчас
+            </button>
+          `;
+          // НЕ закрываем автоматически!
+        } catch (err) {
+          console.error(err);
+          statusEl.innerHTML = "Не удалось открыть редактор историй.<br>" + err.message;
+          setTimeout(() => Telegram.WebApp.close(), 4000);
+        }
+      } else {
+        statusEl.innerHTML = "Метод shareToStory не поддерживается твоей версией Telegram.<br>Обнови приложение.";
+        setTimeout(() => Telegram.WebApp.close(), 5000);
+      }
     } else {
-      // Нет Premium → скачиваем txt
+      // Нет Premium
       const blob = new Blob([digits], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -41,13 +80,18 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      document.body.innerHTML = "<h2>У тебя нет Premium 😔<br>Скачан файл с цифрами</h2>";
+      document.body.innerHTML = `
+        <h2>Premium не найден 😔</h2>
+        <p>Файл с 16 случайными цифрами скачан.</p>
+        <p style="margin-top:30px;">
+          <button onclick="Telegram.WebApp.close()" style="padding:12px 30px; font-size:1.1em; background:#666; color:white; border:none; border-radius:10px;">
+            Закрыть
+          </button>
+        </p>
+      `;
+      // Можно закрыть автоматически через 4–5 сек, но лучше дать кнопку
+      // setTimeout(() => Telegram.WebApp.close(), 5000);
     }
-
-    // Закрываем мини-приложение через 1.5–3 секунды
-    setTimeout(() => {
-      Telegram.WebApp.close();
-    }, 1800);
   </script>
 </body>
 </html>
