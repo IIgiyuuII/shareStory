@@ -26,32 +26,50 @@
   tg.ready();
   tg.expand();
 
-  const status = document.getElementById('status');
+ const user = tg.initDataUnsafe?.user || {};
+const hasPremium = user.is_premium === true;  // строго === true, undefined → false
 
-  let debug = `
-Версия WebApp: ${tg.version || 'неизвестно'}
-Платформа: ${tg.platform || 'неизвестно'}
-initDataUnsafe существует? ${!!tg.initDataUnsafe}
-user: ${tg.initDataUnsafe?.user ? JSON.stringify(tg.initDataUnsafe.user, null, 2) : 'ОТСУТСТВУЕТ'}
-is_premium: ${tg.initDataUnsafe?.user?.is_premium ?? 'нет данных'}
-shareToStory существует? ${typeof tg.shareToStory === 'function' ? 'ДА' : 'НЕТ'}
+// Для отладки оставь временно:
+status.innerHTML += `<p>is_premium сырое значение: ${user.is_premium} (тип: ${typeof user.is_premium})</p>`;
+
+// Проверка платформы (на всякий)
+if (tg.platform === 'tdesktop' || tg.platform === 'macos') {
+  // ... сообщение о десктопе, как раньше
+  return;
+}
+
+if (hasPremium && typeof tg.shareToStory === 'function') {
+  try {
+    const mediaUrl = "https://picsum.photos/720/1280"; // или твоя картинка
+
+    tg.shareToStory(mediaUrl, {
+      text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано на сайте!`
+    });
+
+    document.body.innerHTML = `
+      <h2 style="color:green">Редактор историй должен открыться!</h2>
+      <p style="font-size:1.3em; margin:30px 20px;">
+        Если ничего не появилось — обнови Telegram до последней версии.<br>
+        Опубликуй или нажми «Назад», потом можешь закрыть мини-апп.
+      </p>
+      <button onclick="tg.close()" style="padding:14px 40px; background:#0088cc; color:white; border:none; border-radius:12px;">
+        Закрыть мини-апп
+      </button>
+    `;
+  } catch (err) {
+    status.innerHTML = `Ошибка при вызове shareToStory: ${err.message || err}`;
+  }
+} else {
+  // Нет Premium (или флаг не пришёл) → скачиваем txt
+  // ... твой код скачивания файла
+  document.body.innerHTML = `
+    <h2>Premium не обнаружен 😔 (или флаг не пришёл от Telegram)</h2>
+    <p>Файл random_16_digits.txt скачан.</p>
+    <p>Если у тебя есть Premium — попробуй написать боту /start ещё раз, потом перезапусти мини-апп.</p>
+    <button onclick="tg.close()" style="padding:12px 30px; background:#666; color:white; border:none; border-radius:10px; margin-top:20px;">
+      Закрыть
+    </button>
   `;
-
-  status.innerHTML = `<pre style="text-align:left; white-space:pre-wrap; font-size:0.95em; background:#fff; padding:15px; border:1px solid #ccc; border-radius:8px;">${debug}</pre>`;
-
-  if (!tg.initDataUnsafe?.user) {
-    status.innerHTML += '<p style="color:red; margin-top:20px;">→ Мини-апп открыт НЕ внутри Telegram. Открой через https://t.me/твойбот/имяаппа</p>';
-  } else if (tg.initDataUnsafe.user.is_premium && typeof tg.shareToStory === 'function') {
-    try {
-      tg.shareToStory('https://picsum.photos/720/1280', {
-        text: 'Тест: должно открыться редактор историй!'
-      });
-      status.innerHTML += '<p style="color:green; margin-top:20px;">shareToStory вызван → редактор должен появиться поверх!</p>';
-    } catch(e) {
-      status.innerHTML += `<p style="color:red;">Ошибка: ${e.message}</p>`;
-    }
-  } else {
-    status.innerHTML += '<p>Нет Premium или метод недоступен → тест shareToStory пропущен</p>';
   }
 </script>
 </body>
