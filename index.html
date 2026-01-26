@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Поделиться в историю</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; text-align:center; padding:40px; background:#f0f2f5; }
+    h1 { color:#0088cc; }
+  </style>
+</head>
+<body>
+  <h1>Подготовка...</h1>
+
+  <script>
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+
+    // Генерируем 16 случайных цифр
+    const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
+
+    if (Telegram.WebApp.initDataUnsafe.user?.is_premium) {
+      // Есть Premium → открываем редактор истории
+      // Замени ссылку на свою картинку (обязательно HTTPS!)
+      const mediaUrl = "https://picsum.photos/200/300"; // пример случайной картинки
+
+      Telegram.WebApp.shareToStory(mediaUrl, {
+        text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано на моём сайте!`,
+        // widget_link: { url: "https://твой-сайт.ru", name: "Мой крутой сайт" } // опционально
+      });
+    } else {
+      // Нет Premium → скачиваем txt
+      const blob = new Blob([digits], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "random_16_digits.txt";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      document.body.innerHTML = "<h2>У тебя нет Premium 😔<br>Скачан файл с цифрами</h2>";
+    }
+
+    // Закрываем мини-приложение через 1.5–3 секунды
+    setTimeout(() => {
+      Telegram.WebApp.close();
+    }, 1800);
+  </script>
+</body>
+</html>
