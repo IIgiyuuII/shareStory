@@ -13,30 +13,81 @@
       background: #f0f2f5; 
       margin: 0;
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
-    h1, h2 { color: #0088cc; }
+    h1, h2 { color: #0088cc; margin-bottom: 20px; }
     button {
-      padding: 14px 40px;
-      font-size: 1.1em;
-      margin: 15px;
+      padding: 16px 48px;
+      font-size: 1.2em;
+      margin: 12px;
       border: none;
       border-radius: 12px;
       cursor: pointer;
     }
     .blue { background: #0088cc; color: white; }
-    .gray { background: #ccc; color: black; }
+    .gray { background: #777; color: white; }
   </style>
 </head>
 <body>
-  <h1>Подготовка...</h1>
-  <div id="status" style="font-size:1.1em; margin:20px 0;">Проверяем Telegram...</div>
+
+  <h1>Тестовый генератор</h1>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    document.body.innerHTML = '<h1>Тест — код дошёл сюда!</h1>';
+    // Генерируем сразу
+    const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
+
+    const user = tg.initDataUnsafe?.user || {};
+    const hasPremium = user.is_premium === true;
+
+    if (hasPremium && typeof tg.shareToStory === 'function') {
+      try {
+        tg.shareToStory('https://picsum.photos/720/1280', {
+          text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано здесь → t.me/твойбот`
+        });
+
+        document.body.innerHTML = `
+          <h2 style="color: green;">Редактор историй открыт!</h2>
+          <p style="font-size: 1.2em; margin: 24px 16px;">
+            Опубликуй историю или нажми «Назад».<br>
+            Потом можешь закрыть это окно.
+          </p>
+          <button class="blue" onclick="Telegram.WebApp.close()">Закрыть</button>
+        `;
+      } catch (err) {
+        // Если даже с Premium что-то пошло не так
+        fallbackDownload();
+      }
+    } else {
+      fallbackDownload();
+    }
+
+    function fallbackDownload() {
+      const blob = new Blob([digits], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'random_16_digits.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      document.body.innerHTML = `
+        <h2>Premium не обнаружен</h2>
+        <p style="font-size: 1.2em; margin: 24px 16px;">
+          Файл <strong>random_16_digits.txt</strong> скачан на устройство.<br>
+          Публикация в истории доступна только с Telegram Premium.
+        </p>
+        <button class="gray" onclick="Telegram.WebApp.close()">Закрыть</button>
+      `;
+    }
   </script>
+
 </body>
 </html>
