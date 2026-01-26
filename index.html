@@ -9,83 +9,80 @@
     body { 
       font-family: system-ui, sans-serif; 
       text-align: center; 
-      padding: 40px; 
+      padding: 40px 20px; 
       background: #f0f2f5; 
       margin: 0;
+      min-height: 100vh;
     }
     h1, h2 { color: #0088cc; }
-    .message { font-size: 1.2em; margin-top: 30px; }
-    pre { text-align: left; background: white; padding: 15px; border-radius: 8px; font-size: 0.95em; overflow: auto; max-width: 100%; }
+    button {
+      padding: 14px 40px;
+      font-size: 1.1em;
+      margin: 15px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .blue { background: #0088cc; color: white; }
+    .gray { background: #ccc; color: black; }
   </style>
 </head>
 <body>
   <h1>Подготовка...</h1>
-  <div class="message" id="status">Проверяем...</div>
+  <div id="status" style="font-size:1.1em; margin:20px 0;">Проверяем Telegram...</div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    // Генерируем цифры сразу
+    // Генерируем сразу, чтобы не было ошибок
     const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
 
     const status = document.getElementById('status');
     const user = tg.initDataUnsafe?.user || {};
-    const hasPremium = user.is_premium === true; // undefined/false → нет
+    const hasPremium = user.is_premium === true;
 
-    // Отладка
-    status.innerHTML = `
-      <p>Платформа: ${tg.platform}</p>
-      <p>is_premium сырое: ${user.is_premium} (тип: ${typeof user.is_premium})</p>
-      <p>hasPremium: ${hasPremium}</p>
-    `;
+    // Минимальная отладка (можно удалить позже)
+    status.innerHTML = `Платформа: ${tg.platform}<br>is_premium: ${user.is_premium ?? 'отсутствует'}`;
 
-    if (tg.platform === 'tdesktop' || tg.platform === 'macos') {
-      status.innerHTML += '<p style="color:red">Работает только в мобильном Telegram (Android/iOS)</p>';
+    if (!tg.initDataUnsafe?.user) {
+      status.innerHTML += '<br><br><strong style="color:red">Нет данных пользователя — открой через t.me/бот/имяаппа</strong>';
       return;
     }
 
+    // Пытаемся поделиться, если Premium и метод есть
     if (hasPremium && typeof tg.shareToStory === 'function') {
       try {
-        const mediaUrl = "https://picsum.photos/720/1280"; // вертикальная картинка
-
-        tg.shareToStory(mediaUrl, {
+        tg.shareToStory('https://picsum.photos/720/1280', {
           text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано на моём сайте!`
         });
 
         document.body.innerHTML = `
-          <h2 style="color:green">Редактор историй открыт!</h2>
-          <p style="font-size:1.3em; margin:30px 20px;">
-            Опубликуй историю или нажми «Назад».<br>
-            Когда закончишь — закрой мини-апп (кнопка сверху или свайп).
-          </p>
-          <button onclick="Telegram.WebApp.close()" style="padding:14px 40px; background:#0088cc; color:white; border:none; border-radius:12px; font-size:1.1em;">
-            Закрыть сейчас
-          </button>
+          <h2 style="color:green">Открываем редактор историй...</h2>
+          <p>Если ничего не появилось — обнови Telegram.</p>
+          <button class="blue" onclick="tg.close()">Закрыть мини-апп</button>
         `;
       } catch (err) {
-        status.innerHTML += `<p style="color:red">Ошибка shareToStory: ${err.message || err}</p>`;
+        status.innerHTML += `<br><br>Ошибка: ${err.message || 'неизвестная'}`;
       }
     } else {
-      // Нет Premium или флаг не пришёл → скачиваем txt
-      const blob = new Blob([digits], { type: "text/plain" });
+      // Нет Premium → сразу скачиваем txt
+      const blob = new Blob([digits], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "random_16_digits.txt";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'random_16_digits.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       document.body.innerHTML = `
         <h2>Premium не обнаружен 😔</h2>
         <p>Файл с 16 случайными цифрами скачан на устройство.</p>
-        <p style="margin-top:20px;">(Это нормальное поведение без Premium — истории доступны только подписчикам)</p>
-        <button onclick="Telegram.WebApp.close()" style="padding:12px 30px; background:#666; color:white; border:none; border-radius:10px; margin-top:20px;">
-          Закрыть
-        </button>
+        <p>Истории в Telegram доступны только с подпиской Premium.</p>
+        <button class="gray" onclick="tg.close()">Закрыть</button>
       `;
     }
   </script>
