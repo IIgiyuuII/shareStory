@@ -16,78 +16,98 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: center;
     }
     h1, h2 { color: #0088cc; margin-bottom: 20px; }
     button {
       padding: 16px 48px;
       font-size: 1.2em;
-      margin: 12px;
+      margin: 20px 0;
       border: none;
       border-radius: 12px;
       cursor: pointer;
     }
-    .blue { background: #0088cc; color: white; }
-    .gray { background: #777; color: white; }
+    .share-btn { background: #0088cc; color: white; }
+    .close-btn { background: #666; color: white; }
+    #status { font-size: 1.1em; margin-top: 20px; color: #555; }
   </style>
 </head>
 <body>
-
-  <h1>Тестовый генератор</h1>
+  <h1>Готово к публикации</h1>
+  <p>Нажми кнопку, чтобы поделиться в историю Telegram</p>
+  <button class="share-btn" id="shareButton">Поделиться в историю</button>
+  <div id="status"></div>
 
   <script>
-    const tg = window.Telegram.WebApp;
+    const tg = Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    // Генерируем сразу
-    const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
-
+    const status = document.getElementById('status');
+    const shareButton = document.getElementById('shareButton');
+    const platform = tg.platform || 'unknown';
     const user = tg.initDataUnsafe?.user || {};
     const hasPremium = user.is_premium === true;
 
-    if (hasPremium && typeof tg.shareToStory === 'function') {
-      try {
-        tg.shareToStory('https://picsum.photos/720/1280', {
-          text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано здесь → t.me/твойбот`
-        });
-
-        document.body.innerHTML = `
-          <h2 style="color: green;">Редактор историй открыт!</h2>
-          <p style="font-size: 1.2em; margin: 24px 16px;">
-            Опубликуй историю или нажми «Назад».<br>
-            Потом можешь закрыть это окно.
-          </p>
-          <button class="blue" onclick="Telegram.WebApp.close()">Закрыть</button>
-        `;
-      } catch (err) {
-        // Если даже с Premium что-то пошло не так
-        fallbackDownload();
-      }
-    } else {
-      fallbackDownload();
-    }
-
-    function fallbackDownload() {
-      const blob = new Blob([digits], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'random_16_digits.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+    // Если десктоп — показываем предупреждение сразу
+    if (platform === 'tdesktop' || platform === 'macos' || platform === 'unknown') {
       document.body.innerHTML = `
-        <h2>Premium не обнаружен</h2>
-        <p style="font-size: 1.2em; margin: 24px 16px;">
-          Файл <strong>random_16_digits.txt</strong> скачан на устройство.<br>
-          Публикация в истории доступна только с Telegram Premium.
+        <h2 style="color: #e74c3c;">Не поддерживается на ПК</h2>
+        <p style="font-size: 1.2em; margin: 30px 20px;">
+          Истории работают только в мобильном Telegram (Android/iOS).<br>
+          Открой мини-апп на телефоне.
         </p>
-        <button class="gray" onclick="Telegram.WebApp.close()">Закрыть</button>
+        <button class="close-btn" onclick="tg.close()">Закрыть</button>
       `;
+      return;
     }
-  </script>
 
+    // Логика по нажатию кнопки
+    shareButton.addEventListener('click', () => {
+      shareButton.disabled = true; // Чтобы не спамили
+      status.innerHTML = 'Подготавливаем...';
+
+      const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
+
+      if (hasPremium && typeof tg.shareToStory === 'function') {
+        try {
+          tg.shareToStory('https://via.placeholder.com/720x1280.png?text=Test+Story', { // Стабильная картинка (замени на свою)
+            text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано в мини-аппе!`
+          });
+
+          document.body.innerHTML = `
+            <h2 style="color: green;">Редактор историй открыт!</h2>
+            <p style="font-size: 1.2em; margin: 30px 20px;">
+              Опубликуй историю или нажми «Назад».<br>
+              Когда закончишь — закрой мини-апп.
+            </p>
+            <button class="close-btn" onclick="tg.close()">Закрыть сейчас</button>
+          `;
+        } catch (err) {
+          status.innerHTML = `Ошибка: ${err.message || 'Не удалось открыть историю. Обнови Telegram.'}`;
+          shareButton.disabled = false;
+        }
+      } else {
+        // Нет Premium — скачиваем txt
+        const blob = new Blob([digits], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'random_16_digits.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        status.innerHTML = 'Premium не найден 😔 Файл скачан.';
+        document.body.innerHTML += `
+          <p style="font-size: 1.2em; margin-top: 20px;">
+            Истории доступны только с Telegram Premium.
+          </p>
+          <button class="close-btn" onclick="tg.close()">Закрыть</button>
+        `;
+      }
+    });
+  </script>
 </body>
 </html>
