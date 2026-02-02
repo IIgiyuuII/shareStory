@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Открыть редактор историй</title>
+  <title>Поделиться в историю Telegram</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init({ defaults: { displaySize: 45 } });</script>
 
   <style>
-    body { 
-      font-family: system-ui, sans-serif; 
-      text-align: center; 
-      padding: 40px 20px; 
-      background: #f0f2f5; 
+    body {
+      font-family: system-ui, sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+      background: #f0f2f5;
       margin: 0;
       min-height: 100vh;
       display: flex;
@@ -32,78 +32,110 @@
       color: white;
       cursor: pointer;
     }
-    #status { 
-      font-size: 1.2em; 
-      margin: 30px; 
-      color: #333; 
-      white-space: pre-wrap; 
-      word-break: break-all; 
-      background: #fff; 
-      padding: 20px; 
-      border-radius: 12px; 
-      border: 1px solid #ccc; 
+    #status {
+      font-size: 1.2em;
+      margin: 30px;
+      color: #333;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
       max-width: 90%;
     }
   </style>
 </head>
 <body>
-  <h1>Открыть редактор историй</h1>
-  <button id="shareButton">Открыть камеру / галерею для истории</button>
-  <div id="status">Ждём нажатия... (смотри Eruda Console после клика)</div>
+  <h1>Поделиться в историю</h1>
+  <button id="shareBtn">Открыть редактор историй</button>
+  <div id="status">Нажмите кнопку выше</div>
 
   <script>
-    console.log('[START] Скрипт загружен');
+    console.log('[START] Скрипт запущен');
 
     function init() {
       const tg = Telegram.WebApp;
       tg.ready();
       tg.expand();
-      console.log('[INIT] Telegram ready + expand');
+      console.log('[INIT] WebApp готов');
 
       const status = document.getElementById('status');
-      const btn = document.getElementById('shareButton');
+      const btn = document.getElementById('shareBtn');
 
       if (!btn) {
-        status.textContent = 'Ошибка: кнопка не найдена';
-        console.error('Кнопка не найдена');
+        status.textContent = 'Кнопка не найдена';
         return;
       }
 
-      console.log('[INIT] Кнопка найдена');
-
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         console.log('[CLICK] Кнопка нажата');
-        status.textContent = 'Открываем редактор историй без медиа...';
+        status.textContent = 'Генерируем изображение...';
 
-        if (tg.platform.includes('desktop') || tg.platform === 'tdesktop') {
-          status.textContent += '\nПК/десктоп: функция не поддерживается';
-          console.warn('ПК платформа');
-          return;
-        }
+        // 1. Создаём тестовое изображение на canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 720;
+        canvas.height = 1280;
+        const ctx = canvas.getContext('2d');
 
-        if (typeof tg.shareToStory !== 'function') {
-          status.textContent += '\nМетод shareToStory недоступен в твоей версии Telegram';
-          console.warn('Нет shareToStory');
-          return;
-        }
+        // фон
+        ctx.fillStyle = '#f0f2f5';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        console.log('[CALL] Вызываем shareToStory с пустым media_url');
+        // текст
+        ctx.fillStyle = '#0088cc';
+        ctx.font = 'bold 60px sans-serif';
+        ctx.fillText('Тестовый скрин', 100, 300);
+        ctx.font = '40px sans-serif';
+        ctx.fillText('Дата: 02.02.2026', 100, 500);
+        ctx.fillText('Мини-апп Telegram', 100, 700);
+
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        console.log('[CANVAS] Изображение готово');
+
+        status.textContent += '\nЗагружаем на freeimage.host...';
+
+        // 2. Формируем FormData для freeimage.host API v1
+        const formData = new FormData();
+        formData.append('source', blob, 'screenshot.png');
+        formData.append('action', 'upload');
+        formData.append('format', 'json');
 
         try {
-          tg.shareToStory('', {  // Пустой media_url — должен открыть камеру/галерею
-            text: 'Пустая история для теста (можно добавить фото/видео)'
+          const res = await fetch('https://freeimage.host/api/1/upload', {
+            method: 'POST',
+            body: formData
           });
 
-          status.textContent += '\nВызов прошёл → жди камеру или галерею (1–5 сек)\nЕсли ничего не открылось — обнови Telegram до последней версии';
-          console.log('[SUCCESS] shareToStory вызван без исключения');
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const json = await res.json();
+          console.log('[UPLOAD] Ответ сервера:', json);
+
+          if (json.status !== 'success' || !json.image?.url) {
+            throw new Error(json.error?.message || 'Нет ссылки в ответе');
+          }
+
+          const imageUrl = json.image.url;
+          console.log('[UPLOAD] Получена ссылка:', imageUrl);
+
+          status.textContent += '\nЗагружено! Открываем редактор историй...';
+
+          // 3. Вызываем shareToStory с реальной HTTPS-ссылкой
+          tg.shareToStory(imageUrl, {
+            text: 'Скриншот из мини-аппа\nТест 2026'
+          });
+
+          status.textContent += '\nРедактор должен открыться\n(если нет — обновите Telegram)';
+          console.log('[SUCCESS] shareToStory вызван');
         } catch (err) {
-          status.textContent += '\nОшибка: ' + (err.message || 'неизвестно');
-          console.error('[ERROR] shareToStory:', err);
+          status.textContent += '\nОшибка: ' + (err.message || 'неизвестная ошибка');
+          console.error('[ERROR]', err);
         }
       });
 
-      status.textContent = 'Нажми кнопку выше\n(открой Eruda → Console для логов)';
-      console.log('[INIT] Всё настроено');
+      status.textContent = 'Нажмите кнопку, чтобы открыть редактор историй';
+      console.log('[INIT] Всё готово');
     }
 
     init();
