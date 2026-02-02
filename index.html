@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Поделиться в историю</title>
+  <title>Открыть редактор историй</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init({ defaults: { displaySize: 45 } });</script>
@@ -21,22 +21,34 @@
       justify-content: center;
       align-items: center;
     }
-    h1 { color: #0088cc; }
+    h1 { color: #0088cc; margin-bottom: 40px; }
     button {
-      padding: 18px 60px;
-      font-size: 1.3em;
-      margin: 30px 0;
+      padding: 20px 80px;
+      font-size: 1.4em;
+      margin: 40px 0;
       border: none;
-      border-radius: 16px;
+      border-radius: 20px;
       background: #0088cc;
       color: white;
+      cursor: pointer;
     }
-    #status { font-size: 1.1em; margin: 20px; color: #333; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ccc; }
+    #status { 
+      font-size: 1.2em; 
+      margin: 30px; 
+      color: #333; 
+      white-space: pre-wrap; 
+      word-break: break-all; 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 12px; 
+      border: 1px solid #ccc; 
+      max-width: 90%;
+    }
   </style>
 </head>
 <body>
-  <h1>Тест shareToStory с скрином</h1>
-  <button id="shareButton">Поделиться в историю</button>
+  <h1>Открыть редактор историй</h1>
+  <button id="shareButton">Открыть камеру / галерею для истории</button>
   <div id="status">Ждём нажатия... (смотри Eruda Console после клика)</div>
 
   <script>
@@ -61,48 +73,28 @@
 
       btn.addEventListener('click', () => {
         console.log('[CLICK] Кнопка нажата');
-        status.textContent = 'Клик сработал → генерируем скрин...';
+        status.textContent = 'Открываем редактор историй без медиа...';
 
-        const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
-
-        const platform = tg.platform || 'unknown';
-        if (platform.includes('desktop') || platform === 'tdesktop' || platform === 'macos') {
-          status.textContent += '\nПК: истории не поддерживаются';
+        if (tg.platform.includes('desktop') || tg.platform === 'tdesktop') {
+          status.textContent += '\nПК/десктоп: функция не поддерживается';
           console.warn('ПК платформа');
           return;
         }
 
         if (typeof tg.shareToStory !== 'function') {
-          status.textContent += '\nМетод shareToStory отсутствует';
+          status.textContent += '\nМетод shareToStory недоступен в твоей версии Telegram';
           console.warn('Нет shareToStory');
           return;
         }
 
-        // Генерируем "скрин" на canvas (как в @kts_bingo_bot — простой тест с текстом)
-        console.log('[CANVAS] Генерируем изображение на canvas');
-        const canvas = document.createElement('canvas');
-        canvas.width = 720;  // Вертикальный размер для историй
-        canvas.height = 1280;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#f0f2f5';  // Фон как в мини-аппе
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#0088cc';
-        ctx.font = 'bold 60px sans-serif';
-        ctx.fillText('Тест скрин из мини-аппа', 50, 200);
-        ctx.font = '40px sans-serif';
-        ctx.fillText(digits, 50, 400);
-        ctx.fillText('Дата: 02.02.2026', 50, 600);
-
-        const dataUrl = canvas.toDataURL('image/png');
-        console.log('[CANVAS] Data URL готов: ' + dataUrl.substring(0, 50) + '...');
-
-        console.log('[CALL] Вызываем shareToStory с data:URL скрина');
+        console.log('[CALL] Вызываем shareToStory с пустым media_url');
 
         try {
-          tg.shareToStory(dataUrl, {
-            text: `Скрин из мини-аппа\nЦифры: ${digits}\nТест как в @kts_bingo_bot`
+          tg.shareToStory('', {  // Пустой media_url — должен открыть камеру/галерею
+            text: 'Пустая история для теста (можно добавить фото/видео)'
           });
-          status.textContent += '\nВызов прошёл → редактор должен открыться со скрином';
+
+          status.textContent += '\nВызов прошёл → жди камеру или галерею (1–5 сек)\nЕсли ничего не открылось — обнови Telegram до последней версии';
           console.log('[SUCCESS] shareToStory вызван без исключения');
         } catch (err) {
           status.textContent += '\nОшибка: ' + (err.message || 'неизвестно');
@@ -110,7 +102,7 @@
         }
       });
 
-      status.textContent = 'Готово к тесту\n(открой Eruda → Console)';
+      status.textContent = 'Нажми кнопку выше\n(открой Eruda → Console для логов)';
       console.log('[INIT] Всё настроено');
     }
 
