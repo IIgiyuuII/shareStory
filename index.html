@@ -99,8 +99,13 @@
 
       // Кнопку возвращаем через 5 сек, если ничего не произошло
       setTimeout(() => { shareButton.disabled = false; }, 5000);
-      eruda.init();
+      
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>
+  eruda.init();
+  // или eruda.init({ defaults: { displaySize: 40 } });  // если хочешь поменьше
+</script>
 </body>
 </html>
