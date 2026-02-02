@@ -35,8 +35,8 @@
   </style>
 </head>
 <body>
-  <h1>Тест shareToStory</h1>
-  <button id="shareButton">Открыть редактор историй</button>
+  <h1>Тест shareToStory с скрином</h1>
+  <button id="shareButton">Поделиться в историю</button>
   <div id="status">Ждём нажатия... (смотри Eruda Console после клика)</div>
 
   <script>
@@ -61,7 +61,7 @@
 
       btn.addEventListener('click', () => {
         console.log('[CLICK] Кнопка нажата');
-        status.textContent = 'Клик сработал → открываем редактор...';
+        status.textContent = 'Клик сработал → генерируем скрин...';
 
         const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
 
@@ -78,17 +78,31 @@
           return;
         }
 
-        console.log('[CALL] Вызываем shareToStory без media_url (должен открыть пустой редактор)');
+        // Генерируем "скрин" на canvas (как в @kts_bingo_bot — простой тест с текстом)
+        console.log('[CANVAS] Генерируем изображение на canvas');
+        const canvas = document.createElement('canvas');
+        canvas.width = 720;  // Вертикальный размер для историй
+        canvas.height = 1280;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f0f2f5';  // Фон как в мини-аппе
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0088cc';
+        ctx.font = 'bold 60px sans-serif';
+        ctx.fillText('Тест скрин из мини-аппа', 50, 200);
+        ctx.font = '40px sans-serif';
+        ctx.fillText(digits, 50, 400);
+        ctx.fillText('Дата: 02.02.2026', 50, 600);
+
+        const dataUrl = canvas.toDataURL('image/png');
+        console.log('[CANVAS] Data URL готов: ' + dataUrl.substring(0, 50) + '...');
+
+        console.log('[CALL] Вызываем shareToStory с data:URL скрина');
 
         try {
-          tg.shareToStory('', {  // Пустой URL → открывает камеру/галерею
-            text: `Тест пустой истории\nЦифры: ${digits}`
+          tg.shareToStory(dataUrl, {
+            text: `Скрин из мини-аппа\nЦифры: ${digits}\nТест как в @kts_bingo_bot`
           });
-
-          // Альтернатива с картинкой (раскомментируй, если хочешь протестировать)
-          // tg.shareToStory('https://via.placeholder.com/720x1280/0088cc/ffffff?text=Test+Story', { text: `Тест с картинкой\nЦифры: ${digits}` });
-
-          status.textContent += '\nВызов прошёл → ждём редактор (камера/галерея должна открыться через 1–5 сек)';
+          status.textContent += '\nВызов прошёл → редактор должен открыться со скрином';
           console.log('[SUCCESS] shareToStory вызван без исключения');
         } catch (err) {
           status.textContent += '\nОшибка: ' + (err.message || 'неизвестно');
