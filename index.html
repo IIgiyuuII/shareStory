@@ -9,16 +9,47 @@
   <script>eruda.init({ defaults: { displaySize: 45 } });</script>
 
   <style>
-    body { font-family: system-ui, sans-serif; text-align: center; padding: 40px 20px; background: #f0f2f5; margin: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    body { 
+      font-family: system-ui, sans-serif; 
+      text-align: center; 
+      padding: 40px 20px; 
+      background: #f0f2f5; 
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
     h1 { color: #0088cc; margin-bottom: 40px; }
-    button { padding: 20px 80px; font-size: 1.4em; margin: 40px 0; border: none; border-radius: 20px; background: #0088cc; color: white; cursor: pointer; }
-    #status { font-size: 1.2em; margin: 30px; color: #333; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #ccc; max-width: 90%; }
+    button {
+      padding: 20px 80px;
+      font-size: 1.4em;
+      margin: 40px 0;
+      border: none;
+      border-radius: 20px;
+      background: #0088cc;
+      color: white;
+      cursor: pointer;
+    }
+    #status { 
+      font-size: 1.2em; 
+      margin: 30px; 
+      color: #333; 
+      white-space: pre-wrap; 
+      word-break: break-all; 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 12px; 
+      border: 1px solid #ccc; 
+      max-width: 90%;
+    }
   </style>
 </head>
 <body>
   <h1>Поделиться в историю</h1>
-  <button id="shareBtn">Открыть редактор</button>
-  <div id="status">Нажмите кнопку</div>
+  <button id="shareBtn">Открыть редактор историй</button>
+  <div id="status">Нажмите кнопку выше</div>
 
   <script>
     console.log('[START] Скрипт запущен');
@@ -34,6 +65,7 @@
 
       if (!btn) {
         status.textContent = 'Кнопка не найдена';
+        console.error('Кнопка не найдена');
         return;
       }
 
@@ -41,6 +73,7 @@
         console.log('[CLICK] Кнопка нажата');
         status.textContent = 'Генерируем изображение...';
 
+        // 1. Простой canvas для теста
         const canvas = document.createElement('canvas');
         canvas.width = 720;
         canvas.height = 1280;
@@ -49,48 +82,58 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#0088cc';
         ctx.font = 'bold 60px sans-serif';
-        ctx.fillText('Тест', 100, 300);
+        ctx.fillText('Тестовый скрин', 100, 300);
+        ctx.font = '40px sans-serif';
+        ctx.fillText('Из мини-аппа', 100, 500);
 
         const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
         console.log('[CANVAS] Blob готов');
 
-        status.textContent += '\nЗагружаем на freeimage.host...';
+        status.textContent += '\nЗагружаем на Postimages.org...';
 
+        // 2. Загрузка на Postimages (анонимно)
         const formData = new FormData();
-        formData.append('source', blob, 'test.png');
-        formData.append('action', 'upload');
-        formData.append('format', 'json');
+        formData.append('upload[]', blob, 'test-screenshot.png');
+        formData.append('adult', 'no');
+        formData.append('json', '1');  // просим JSON-ответ
 
         try {
-          const res = await fetch('https://freeimage.host/api/1/upload', {
+          const res = await fetch('https://postimg.cc/upload.php', {  // или https://postimages.org/upload.php
             method: 'POST',
             body: formData
           });
 
-          if (!res.ok) throw new Error('HTTP ' + res.status);
+          if (!res.ok) throw new Error('HTTP ошибка: ' + res.status);
 
           const json = await res.json();
-          console.log('[UPLOAD] Ответ:', json);
+          console.log('[UPLOAD] Полный ответ:', json);
 
-          if (json.status !== 'success' || !json.image?.url) {
-            throw new Error(json.error?.message || 'Нет URL');
+          if (json.status !== 'OK' || !json.url) {
+            throw new Error(json.error || 'Нет ссылки в ответе');
           }
 
-          const url = json.image.url;
-          console.log('[UPLOAD] URL:', url);
+          // Прямая ссылка: добавляем https: перед //
+          let imageUrl = json.url;
+          if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
+          console.log('[UPLOAD] Прямая ссылка:', imageUrl);
 
           status.textContent += '\nЗагружено! Открываем редактор...';
 
-          tg.shareToStory(url, { text: 'Тест из мини-аппа' });
-          status.textContent += '\nРедактор должен открыться';
-          console.log('[SUCCESS] Вызов shareToStory');
+          // 3. Вызов shareToStory
+          tg.shareToStory(imageUrl, {
+            text: 'Тестовый скрин из мини-аппа\nДата: 02.02.2026'
+          });
+
+          status.textContent += '\nРедактор должен открыться (проверьте ленту историй)';
+          console.log('[SUCCESS] shareToStory вызван с Postimages URL');
         } catch (err) {
           console.error('[ERROR]', err);
-          status.textContent += '\nОшибка: ' + (err.message || 'неизвестно');
+          status.textContent += '\nОшибка: ' + (err.message || 'неизвестная ошибка');
         }
       });
 
-      status.textContent = 'Готово';
+      status.textContent = 'Готово к тесту\n(Eruda Console для детальных логов)';
+      console.log('[INIT] Всё настроено');
     }
 
     init();
