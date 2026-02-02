@@ -3,53 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Поделиться в историю Telegram</title>
+  <title>Поделиться в историю</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init({ defaults: { displaySize: 45 } });</script>
 
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      text-align: center;
-      padding: 40px 20px;
-      background: #f0f2f5;
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
+    body { font-family: system-ui, sans-serif; text-align: center; padding: 40px 20px; background: #f0f2f5; margin: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     h1 { color: #0088cc; margin-bottom: 40px; }
-    button {
-      padding: 20px 80px;
-      font-size: 1.4em;
-      margin: 40px 0;
-      border: none;
-      border-radius: 20px;
-      background: #0088cc;
-      color: white;
-      cursor: pointer;
-    }
-    #status {
-      font-size: 1.2em;
-      margin: 30px;
-      color: #333;
-      white-space: pre-wrap;
-      word-break: break-all;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid #ccc;
-      max-width: 90%;
-    }
+    button { padding: 20px 80px; font-size: 1.4em; margin: 40px 0; border: none; border-radius: 20px; background: #0088cc; color: white; cursor: pointer; }
+    #status { font-size: 1.2em; margin: 30px; color: #333; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #ccc; max-width: 90%; }
   </style>
 </head>
 <body>
   <h1>Поделиться в историю</h1>
-  <button id="shareBtn">Открыть редактор историй</button>
-  <div id="status">Нажмите кнопку выше</div>
+  <button id="shareBtn">Открыть редактор</button>
+  <div id="status">Нажмите кнопку</div>
 
   <script>
     console.log('[START] Скрипт запущен');
@@ -72,32 +41,23 @@
         console.log('[CLICK] Кнопка нажата');
         status.textContent = 'Генерируем изображение...';
 
-        // 1. Создаём тестовое изображение на canvas
         const canvas = document.createElement('canvas');
         canvas.width = 720;
         canvas.height = 1280;
         const ctx = canvas.getContext('2d');
-
-        // фон
         ctx.fillStyle = '#f0f2f5';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // текст
         ctx.fillStyle = '#0088cc';
         ctx.font = 'bold 60px sans-serif';
-        ctx.fillText('Тестовый скрин', 100, 300);
-        ctx.font = '40px sans-serif';
-        ctx.fillText('Дата: 02.02.2026', 100, 500);
-        ctx.fillText('Мини-апп Telegram', 100, 700);
+        ctx.fillText('Тест', 100, 300);
 
         const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-        console.log('[CANVAS] Изображение готово');
+        console.log('[CANVAS] Blob готов');
 
         status.textContent += '\nЗагружаем на freeimage.host...';
 
-        // 2. Формируем FormData для freeimage.host API v1
         const formData = new FormData();
-        formData.append('source', blob, 'screenshot.png');
+        formData.append('source', blob, 'test.png');
         formData.append('action', 'upload');
         formData.append('format', 'json');
 
@@ -107,35 +67,30 @@
             body: formData
           });
 
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
 
           const json = await res.json();
-          console.log('[UPLOAD] Ответ сервера:', json);
+          console.log('[UPLOAD] Ответ:', json);
 
           if (json.status !== 'success' || !json.image?.url) {
-            throw new Error(json.error?.message || 'Нет ссылки в ответе');
+            throw new Error(json.error?.message || 'Нет URL');
           }
 
-          const imageUrl = json.image.url;
-          console.log('[UPLOAD] Получена ссылка:', imageUrl);
+          const url = json.image.url;
+          console.log('[UPLOAD] URL:', url);
 
-          status.textContent += '\nЗагружено! Открываем редактор историй...';
+          status.textContent += '\nЗагружено! Открываем редактор...';
 
-          // 3. Вызываем shareToStory с реальной HTTPS-ссылкой
-          tg.shareToStory(imageUrl, {
-            text: 'Скриншот из мини-аппа\nТест 2026'
-          });
-
-          status.textContent += '\nРедактор должен открыться\n(если нет — обновите Telegram)';
-          console.log('[SUCCESS] shareToStory вызван');
+          tg.shareToStory(url, { text: 'Тест из мини-аппа' });
+          status.textContent += '\nРедактор должен открыться';
+          console.log('[SUCCESS] Вызов shareToStory');
         } catch (err) {
-          status.textContent += '\nОшибка: ' + (err.message || 'неизвестная ошибка');
           console.error('[ERROR]', err);
+          status.textContent += '\nОшибка: ' + (err.message || 'неизвестно');
         }
       });
 
-      status.textContent = 'Нажмите кнопку, чтобы открыть редактор историй';
-      console.log('[INIT] Всё готово');
+      status.textContent = 'Готово';
     }
 
     init();
