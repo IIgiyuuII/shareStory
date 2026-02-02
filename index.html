@@ -29,14 +29,14 @@
     }
     .share-btn { background: #0088cc; color: white; }
     .close-btn { background: #666; color: white; }
-    #status { font-size: 1.1em; margin-top: 20px; color: #555; }
+    #status { font-size: 1.1em; margin-top: 20px; color: #333; max-width: 90%; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h1>Готово к публикации</h1>
-  <p>Нажми кнопку, чтобы поделиться в историю Telegram</p>
+  <h1>Готов поделиться</h1>
+  <p>Нажми кнопку ниже</p>
   <button class="share-btn" id="shareButton">Поделиться в историю</button>
-  <div id="status"></div>
+  <div id="status">Нажми кнопку, чтобы начать</div>
 
   <script>
     const tg = Telegram.WebApp;
@@ -45,50 +45,27 @@
 
     const status = document.getElementById('status');
     const shareButton = document.getElementById('shareButton');
+
     const platform = tg.platform || 'unknown';
     const user = tg.initDataUnsafe?.user || {};
     const hasPremium = user.is_premium === true;
 
-    // Если десктоп — показываем предупреждение сразу
-    if (platform === 'tdesktop' || platform === 'macos' || platform === 'unknown') {
-      document.body.innerHTML = `
-        <h2 style="color: #e74c3c;">Не поддерживается на ПК</h2>
-        <p style="font-size: 1.2em; margin: 30px 20px;">
-          Истории работают только в мобильном Telegram (Android/iOS).<br>
-          Открой мини-апп на телефоне.
-        </p>
-        <button class="close-btn" onclick="tg.close()">Закрыть</button>
-      `;
+    // Показываем базовую инфу для отладки
+    status.innerHTML = `Платформа: ${platform}<br>Premium: ${hasPremium ? 'да' : 'нет / не видно'}`;
+
+    if (platform.includes('desktop') || platform === 'tdesktop' || platform === 'macos') {
+      status.innerHTML += '<br><br><strong style="color:#e74c3c">Истории не поддерживаются на ПК — открой на телефоне</strong>';
       return;
     }
 
-    // Логика по нажатию кнопки
     shareButton.addEventListener('click', () => {
-      shareButton.disabled = true; // Чтобы не спамили
-      status.innerHTML = 'Подготавливаем...';
+      shareButton.disabled = true;
+      status.innerHTML = 'Попытка открыть редактор...\n(это может занять 1–3 секунды)';
 
       const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
 
-      if (hasPremium && typeof tg.shareToStory === 'function') {
-        try {
-          tg.shareToStory('https://via.placeholder.com/720x1280.png?text=Test+Story', { // Стабильная картинка (замени на свою)
-            text: `Случайные 16 цифр:\n\n${digits}\n\nСгенерировано в мини-аппе!`
-          });
-
-          document.body.innerHTML = `
-            <h2 style="color: green;">Редактор историй открыт!</h2>
-            <p style="font-size: 1.2em; margin: 30px 20px;">
-              Опубликуй историю или нажми «Назад».<br>
-              Когда закончишь — закрой мини-апп.
-            </p>
-            <button class="close-btn" onclick="tg.close()">Закрыть сейчас</button>
-          `;
-        } catch (err) {
-          status.innerHTML = `Ошибка: ${err.message || 'Не удалось открыть историю. Обнови Telegram.'}`;
-          shareButton.disabled = false;
-        }
-      } else {
-        // Нет Premium — скачиваем txt
+      if (!hasPremium) {
+        status.innerHTML += '\nНет Premium → скачиваю txt';
         const blob = new Blob([digits], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -98,15 +75,30 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
-        status.innerHTML = 'Premium не найден 😔 Файл скачан.';
-        document.body.innerHTML += `
-          <p style="font-size: 1.2em; margin-top: 20px;">
-            Истории доступны только с Telegram Premium.
-          </p>
-          <button class="close-btn" onclick="tg.close()">Закрыть</button>
-        `;
+        status.innerHTML += '\nФайл скачан!';
+        shareButton.disabled = false;
+        return;
       }
+
+      if (typeof tg.shareToStory !== 'function') {
+        status.innerHTML += '\nМетод shareToStory недоступен в твоей версии Telegram';
+        shareButton.disabled = false;
+        return;
+      }
+
+      try {
+        // Более надёжная картинка (placeholder, вертикальная, стабильная)
+        tg.shareToStory('https://images.unsplash.com/photo-1557683316-973673baf926?w=720&h=1280&fit=crop', {
+          text: `Тестовые 16 цифр:\n${digits}\nСгенерировано в мини-аппе!`
+        });
+
+        status.innerHTML += '\nВызов shareToStory прошёл без ошибок → редактор должен открыться поверх.\nЕсли ничего не видно:\n• Подожди 3–5 сек\n• Обнови Telegram\n• Перезапусти мини-апп полностью (закрой TG и открой заново)';
+      } catch (err) {
+        status.innerHTML += `\nОшибка: ${err.message || 'неизвестная ошибка при вызове'}`;
+      }
+
+      // Кнопку возвращаем через 5 сек, если ничего не произошло
+      setTimeout(() => { shareButton.disabled = false; }, 5000);
     });
   </script>
 </body>
