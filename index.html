@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Поделиться в историю</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Eruda для мобильной консоли -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init({ defaults: { displaySize: 45 } }); // чуть больше, чтобы удобно</script>
+  <script>eruda.init({ defaults: { displaySize: 45 } });</script>
 
   <style>
     body { 
@@ -31,75 +30,74 @@
       border-radius: 16px;
       background: #0088cc;
       color: white;
-      cursor: pointer;
     }
-    #status { font-size: 1.1em; margin: 20px; color: #333; white-space: pre-wrap; word-break: break-all; }
+    #status { font-size: 1.1em; margin: 20px; color: #333; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h1>Тест кнопки</h1>
+  <h1>Тест shareToStory</h1>
   <button id="shareButton">Поделиться в историю</button>
-  <div id="status">Ждём нажатия... (открой Eruda → Console)</div>
+  <div id="status">Ждём нажатия... (смотри Eruda Console после клика)</div>
 
   <script>
-    console.log('Скрипт запущен успешно');
+    console.log('[START] Скрипт загружен');
 
-    const tg = Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    console.log('Telegram.WebApp ready + expand вызваны');
-    console.log('Платформа:', tg.platform);
-    console.log('Premium:', tg.initDataUnsafe?.user?.is_premium);
+    function init() {
+      const tg = Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      console.log('[INIT] Telegram ready + expand');
 
-    const status = document.getElementById('status');
-    const btn = document.getElementById('shareButton');
+      const status = document.getElementById('status');
+      const btn = document.getElementById('shareButton');
 
-    if (!btn) {
-      status.innerHTML = 'Кнопка НЕ найдена по id="shareButton" !';
-      console.error('Кнопка НЕ найдена');
-      alert('Кнопка не найдена — проверь id');
-      return;
-    }
+      if (!btn) {
+        status.textContent = 'Ошибка: кнопка не найдена';
+        console.error('Кнопка не найдена');
+        return;
+      }
 
-    console.log('Кнопка найдена, привязываем click');
+      console.log('[INIT] Кнопка найдена');
 
-    btn.addEventListener('click', function(e) {
-      console.log('Кнопка нажата! Событие click сработало');
-      status.innerHTML = 'Кнопка нажата!\nПопытка открыть историю...';
+      btn.addEventListener('click', () => {
+        console.log('[CLICK] Кнопка нажата');
+        status.textContent = 'Клик сработал → готовим историю';
 
-      try {
         const digits = Math.floor(1000000000000000 + Math.random() * 9000000000000000).toString();
-        console.log('Сгенерированы цифры:', digits);
 
-        if (tg.platform.includes('desktop') || tg.platform === 'tdesktop') {
-          status.innerHTML += '\nПК — истории не поддерживаются';
-          alert('На ПК истории не работают');
-          return;
+        const platform = tg.platform || 'unknown';
+        if (platform.includes('desktop') || platform === 'tdesktop' || platform === 'macos') {
+          status.textContent += '\nПК: истории не поддерживаются';
+          console.warn('ПК платформа');
+          return; // здесь return внутри функции — ОК
         }
 
         if (typeof tg.shareToStory !== 'function') {
-          console.warn('shareToStory отсутствует');
-          status.innerHTML += '\nМетод shareToStory недоступен';
-          alert('Метод shareToStory не найден');
+          status.textContent += '\nМетод shareToStory отсутствует';
+          console.warn('Нет shareToStory');
           return;
         }
 
-        console.log('Вызываем shareToStory...');
-        tg.shareToStory(
-          'https://via.placeholder.com/720x1280/0088cc/ffffff?text=Test+Story+2026',
-          { text: `Цифры: ${digits}\nТест из мини-аппа` }
-        );
+        console.log('[CALL] Вызываем shareToStory');
+        try {
+          tg.shareToStory(
+            'https://via.placeholder.com/720x1280/0088cc/ffffff?text=Test+Story',
+            { text: `Цифры: ${digits}\nТест 2026` }
+          );
+          status.textContent += '\nВызов прошёл → ждём редактор (1–5 сек)';
+          console.log('[SUCCESS] shareToStory вызван без исключения');
+        } catch (err) {
+          status.textContent += '\nОшибка: ' + (err.message || 'неизвестно');
+          console.error('[ERROR] shareToStory:', err);
+        }
+      });
 
-        status.innerHTML += '\nВызов прошёл (без видимой ошибки)\n→ Редактор должен появиться через 1–3 сек';
-        console.log('shareToStory вызван без исключения');
-      } catch (err) {
-        console.error('Ошибка в shareToStory:', err);
-        status.innerHTML += '\nОшибка: ' + (err.message || 'неизвестно');
-        alert('Ошибка: ' + (err.message || 'проверь консоль'));
-      }
-    });
+      status.textContent = 'Готово к тесту\n(открой Eruda → Console)';
+      console.log('[INIT] Всё настроено');
+    }
 
-    console.log('Обработчик click привязан');
+    // Запускаем без return в глобале
+    init();
   </script>
 </body>
 </html>
