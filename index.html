@@ -6,13 +6,13 @@
   <title>Поделиться в историю</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Eruda для отладки (можно удалить после тестов) -->
+  <!-- Eruda для отладки (удали после теста) -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
 
   <style>
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: system-ui, sans-serif;
       background: #f0f2f5;
       margin: 0;
       padding: 20px;
@@ -39,7 +39,6 @@
       border: none;
       border-radius: 16px;
       cursor: pointer;
-      transition: background 0.2s;
     }
     button:hover { background: #006699; }
     #status {
@@ -54,12 +53,12 @@
 
   <h1>Поделиться в историю</h1>
 
-  <!-- Твоя картинка из репозитория -->
-  <img src="photo/Screenshot_10.jpg" alt="Скриншот для истории">
+  <!-- Показываем картинку из репозитория -->
+  <img src="photo/Screenshot_10.jpg" alt="Фон для истории">
 
   <button id="shareButton">Поделиться в историю</button>
 
-  <div id="status">Нажмите кнопку выше</div>
+  <div id="status">Нажмите кнопку</div>
 
   <script>
     const tg = Telegram.WebApp;
@@ -72,22 +71,18 @@
     const status = document.getElementById("status");
 
     shareButton.addEventListener("click", () => {
-      console.log('Кнопка нажата → вызываем shareToStory');
+      console.log('Кнопка нажата → shareToStory');
 
       status.textContent = "Открываем редактор...";
 
       try {
         tg.shareToStory({
           media_url: "https://raw.githubusercontent.com/IIgiyuuII/shareStory/main/photo/Screenshot_10.jpg",
-          text: "Просто тест репоста в историю! 🔥",
-          // widget_link: { // только для Premium
-          //   url: "https://t.me/твойбот",
-          //   name: "Мой мини-апп"
-          // }
+          text: "Тест репоста в историю! 🔥"
         });
 
-        status.textContent = "Редактор открыт! Опубликуй или вернись назад.";
-        console.log('shareToStory успешно вызван');
+        status.textContent = "Редактор открыт! Опубликуй или вернись.";
+        console.log('shareToStory вызван успешно');
       } catch (error) {
         status.textContent = "Ошибка: " + (error.message || "неизвестная");
         console.error("Ошибка shareToStory:", error);
