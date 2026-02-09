@@ -5,138 +5,92 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Поделиться в историю</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Eruda для отладки (можно удалить потом) -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init({ defaults: { displaySize: 45 } });</script>
+  <script>eruda.init();</script>
 
   <style>
-    body { 
-      font-family: system-ui, sans-serif; 
-      text-align: center; 
-      padding: 40px 20px; 
-      background: #f0f2f5; 
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
       margin: 0;
+      padding: 20px;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
+      text-align: center;
     }
-    h1 { color: #0088cc; margin-bottom: 40px; }
+    h1 { color: #0088cc; margin-bottom: 30px; }
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: 40px;
+    }
     button {
-      padding: 20px 80px;
-      font-size: 1.4em;
-      margin: 40px 0;
-      border: none;
-      border-radius: 20px;
+      padding: 16px 60px;
+      font-size: 1.3em;
       background: #0088cc;
       color: white;
+      border: none;
+      border-radius: 16px;
       cursor: pointer;
+      transition: background 0.2s;
     }
-    #status { 
-      font-size: 1.2em; 
-      margin: 30px; 
-      color: #333; 
-      white-space: pre-wrap; 
-      word-break: break-all; 
-      background: #fff; 
-      padding: 20px; 
-      border-radius: 12px; 
-      border: 1px solid #ccc; 
+    button:hover { background: #006699; }
+    #status {
+      margin-top: 30px;
+      font-size: 1.1em;
+      color: #555;
       max-width: 90%;
     }
   </style>
 </head>
 <body>
+
   <h1>Поделиться в историю</h1>
-  <button id="shareBtn">Открыть редактор историй</button>
+
+  <!-- Показываем твою картинку из репозитория -->
+  <img src="Screenshot_10.jpg" alt="Твоя картинка для истории">
+
+  <button id="shareButton">Поделиться в историю</button>
+
   <div id="status">Нажмите кнопку выше</div>
 
   <script>
-    console.log('[START] Скрипт запущен');
+    const tg = Telegram.WebApp;
+    tg.ready();
+    tg.expand(); // Разворачиваем мини-апп на весь экран
 
-    function init() {
-      const tg = Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      console.log('[INIT] WebApp готов');
+    console.log('Mini App запущен');
 
-      const status = document.getElementById('status');
-      const btn = document.getElementById('shareBtn');
+    document.getElementById("shareButton").addEventListener("click", () => {
+      console.log('Кнопка нажата — вызываем shareToStory');
 
-      if (!btn) {
-        status.textContent = 'Кнопка не найдена';
-        console.error('Кнопка не найдена');
-        return;
+      const status = document.getElementById("status");
+      status.textContent = "Открываем редактор...";
+
+      try {
+        tg.shareToStory({
+          media_url: "https://iigiyuuui.github.io/Screenshot_10.jpg", // ← ТВОЯ ССЫЛКА НА КАРТИНКУ ИЗ GITHUB
+          text: "Просто тест репоста в историю! 🔥", // До 200 символов (2048 для Premium)
+          // widget_link: { // Только Premium
+          //   url: "https://t.me/твойбот",
+          //   name: "Мой мини-апп"
+          // }
+        });
+
+        status.textContent = "Редактор открыт! Опубликуй историю или вернись назад.";
+        console.log('shareToStory успешно вызван');
+      } catch (error) {
+        status.textContent = "Ошибка: " + (error.message || "неизвестная");
+        console.error("Ошибка shareToStory:", error);
       }
-
-      btn.addEventListener('click', async () => {
-        console.log('[CLICK] Кнопка нажата');
-        status.textContent = 'Генерируем изображение...';
-
-        // 1. Простой canvas для теста
-        const canvas = document.createElement('canvas');
-        canvas.width = 720;
-        canvas.height = 1280;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#f0f2f5';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#0088cc';
-        ctx.font = 'bold 60px sans-serif';
-        ctx.fillText('Тестовый скрин', 100, 300);
-        ctx.font = '40px sans-serif';
-        ctx.fillText('Из мини-аппа', 100, 500);
-
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-        console.log('[CANVAS] Blob готов');
-
-        status.textContent += '\nЗагружаем на Postimages.org...';
-
-        // 2. Загрузка на Postimages (анонимно)
-        const formData = new FormData();
-        formData.append('upload[]', blob, 'test-screenshot.png');
-        formData.append('adult', 'no');
-        formData.append('json', '1');  // просим JSON-ответ
-
-        try {
-          const res = await fetch('https://postimg.cc/upload.php', {  // или https://postimages.org/upload.php
-            method: 'POST',
-            body: formData
-          });
-
-          if (!res.ok) throw new Error('HTTP ошибка: ' + res.status);
-
-          const json = await res.json();
-          console.log('[UPLOAD] Полный ответ:', json);
-
-          if (json.status !== 'OK' || !json.url) {
-            throw new Error(json.error || 'Нет ссылки в ответе');
-          }
-
-          // Прямая ссылка: добавляем https: перед //
-          let imageUrl = json.url;
-          if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
-          console.log('[UPLOAD] Прямая ссылка:', imageUrl);
-
-          status.textContent += '\nЗагружено! Открываем редактор...';
-
-          // 3. Вызов shareToStory
-          tg.shareToStory(imageUrl, {
-            text: 'Тестовый скрин из мини-аппа\nДата: 02.02.2026'
-          });
-
-          status.textContent += '\nРедактор должен открыться (проверьте ленту историй)';
-          console.log('[SUCCESS] shareToStory вызван с Postimages URL');
-        } catch (err) {
-          console.error('[ERROR]', err);
-          status.textContent += '\nОшибка: ' + (err.message || 'неизвестная ошибка');
-        }
-      });
-
-      status.textContent = 'Готово к тесту\n(Eruda Console для детальных логов)';
-      console.log('[INIT] Всё настроено');
-    }
-
-    init();
+    });
   </script>
 </body>
 </html>
